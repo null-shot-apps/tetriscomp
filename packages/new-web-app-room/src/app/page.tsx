@@ -1,84 +1,297 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
-const slogans = [
-  "Turn chats into apps",
-  "Prompt. Ship. Repeat.",
-  "Build anything from a chat",
-  "Ideas → Apps, instantly",
-  "From zero to MVP in minutes",
-  "Your cofounder in the command line",
-  "Draft, iterate, deploy",
-  "Ship faster than you can type",
-  "Design in text, deliver in code",
-  "Dream it. Prompt it. Run it.",
-  "Chat-native app building",
-  "From prompt to product",
-  "One prompt, infinite apps",
-  "Stop scaffolding. Start shipping.",
-  "Prototype at the speed of thought",
-  "Make conversations executable"
-];
+// Tetris piece shapes
+const SHAPES = {
+  I: [[1, 1, 1, 1]],
+  O: [[1, 1], [1, 1]],
+  T: [[0, 1, 0], [1, 1, 1]],
+  S: [[0, 1, 1], [1, 1, 0]],
+  Z: [[1, 1, 0], [0, 1, 1]],
+  J: [[1, 0, 0], [1, 1, 1]],
+  L: [[0, 0, 1], [1, 1, 1]]
+};
 
-export default function Landing() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+const COLORS = {
+  I: '#00f0f0',
+  O: '#f0f000',
+  T: '#a000f0',
+  S: '#00f000',
+  Z: '#f00000',
+  J: '#0000f0',
+  L: '#f0a000'
+};
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % slogans.length);
-        setIsVisible(true);
-      }, 400);
-    }, 2800);
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
 
-    return () => clearInterval(interval);
+type ShapeType = keyof typeof SHAPES;
+type Board = number[][];
+
+interface Piece {
+  shape: number[][];
+  x: number;
+  y: number;
+  type: ShapeType;
+}
+
+export default function TetrisGame() {
+  const [board, setBoard] = useState<Board>(() => 
+    Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0))
+  );
+  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const createPiece = useCallback((): Piece => {
+    const types = Object.keys(SHAPES) as ShapeType[];
+    const type = types[Math.floor(Math.random() * types.length)];
+    return {
+      shape: SHAPES[type],
+      x: Math.floor(BOARD_WIDTH / 2) - 1,
+      y: 0,
+      type
+    };
   }, []);
 
-  return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
-      {/* Enhanced animated aurora background layers */}
-      <div className="absolute inset-0 bg-aurora-layer-1" />
-      <div className="absolute inset-0 bg-aurora-layer-2" />
-      <div className="absolute inset-0 bg-aurora-layer-3" />
-      
-      {/* Floating particles overlay */}
-      <div className="absolute inset-0 bg-particles" />
-      
-      {/* Main content - centered */}
-      <main className="relative z-10 h-full flex flex-col items-center justify-center px-6">
-        <h1 className="text-center text-[clamp(28px,6vw,64px)] font-medium tracking-tight mb-4">
-          Turn Chats into Apps
-        </h1>
+  const checkCollision = useCallback((piece: Piece, board: Board, offsetX = 0, offsetY = 0): boolean => {
+    for (let y = 0; y < piece.shape.length; y++) {
+      for (let x = 0; x < piece.shape[y].length; x++) {
+        if (piece.shape[y][x]) {
+          const newX = piece.x + x + offsetX;
+          const newY = piece.y + y + offsetY;
+          
+          if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
+            return true;
+          }
+          
+          if (newY >= 0 && board[newY][newX]) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }, []);
+
+  const mergePiece = useCallback((piece: Piece, board: Board): Board => {
+    const newBoard = board.map(row => [...row]);
+    piece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value) {
+          const boardY = piece.y + y;
+          const boardX = piece.x + x;
+          if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+            newBoard[boardY][boardX] = 1;
+          }
+        }
+      });
+    });
+    return newBoard;
+  }, []);
+
+  const clearLines = useCallback((board: Board): { newBoard: Board; linesCleared: number } => {
+    let linesCleared = 0;
+    const newBoard = board.filter(row => {
+      if (row.every(cell => cell === 1)) {
+        linesCleared++;
+        return false;
+      }
+      return true;
+    });
+    
+    while (newBoard.length < BOARD_HEIGHT) {
+      newBoard.unshift(Array(BOARD_WIDTH).fill(0));
+    }
+    
+    return { newBoard, linesCleared };
+  }, []);
+
+  const rotatePiece = useCallback((piece: Piece): number[][] => {
+    const rotated = piece.shape[0].map((_, i) =>
+      piece.shape.map(row => row[i]).reverse()
+    );
+    return rotated;
+  }, []);
+
+  const movePiece = useCallback((direction: 'left' | 'right' | 'down' | 'rotate') => {
+    if (!currentPiece || gameOver || isPaused) return;
+
+    const newPiece = direction === 'left' 
+      ? { ...currentPiece, x: currentPiece.x - 1 }
+      : direction === 'right'
+      ? { ...currentPiece, x: currentPiece.x + 1 }
+      : direction === 'down'
+      ? { ...currentPiece, y: currentPiece.y + 1 }
+      : { ...currentPiece, shape: rotatePiece(currentPiece) };
+
+    if (checkCollision(newPiece, board)) {
+      if (direction === 'down') {
+        const mergedBoard = mergePiece(currentPiece, board);
+        const { newBoard, linesCleared } = clearLines(mergedBoard);
+        setBoard(newBoard);
+        setScore(prev => prev + linesCleared * 100);
         
-        {/* Rotating slogans */}
-        <div className="mt-4 h-8 md:h-10 overflow-hidden flex items-center justify-center">
-          <span
-            className={`inline-block text-center text-[clamp(18px,3vw,32px)] font-light transition-all duration-[400ms] ease-in-out ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}
-          >
-            {slogans[currentIndex]}
-          </span>
-        </div>
-      </main>
+        const nextPiece = createPiece();
+        if (checkCollision(nextPiece, newBoard)) {
+          setGameOver(true);
+        } else {
+          setCurrentPiece(nextPiece);
+        }
+      }
+      return;
+    }
+
+    setCurrentPiece(newPiece);
+  }, [currentPiece, board, gameOver, isPaused, checkCollision, mergePiece, clearLines, createPiece, rotatePiece]);
+
+  const resetGame = useCallback(() => {
+    setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
+    setCurrentPiece(createPiece());
+    setScore(0);
+    setGameOver(false);
+    setIsPaused(false);
+  }, [createPiece]);
+
+  useEffect(() => {
+    if (!currentPiece && !gameOver) {
+      setCurrentPiece(createPiece());
+    }
+  }, [currentPiece, gameOver, createPiece]);
+
+  useEffect(() => {
+    if (gameOver || isPaused) return;
+
+    const interval = setInterval(() => {
+      movePiece('down');
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [movePiece, gameOver, isPaused]);
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (gameOver) return;
       
-      {/* Start Prompting arrow pointing left - bottom left */}
-      <div className="absolute left-6 md:left-8 bottom-[5%] z-20 flex items-center gap-3 arrow-point-left">
-        <div className="flex items-center gap-2 text-white/80 font-medium text-sm md:text-base">
-          <svg 
-            className="w-5 h-5 md:w-6 md:h-6 animate-bounce-horizontal" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Start prompting</span>
+      if (e.key === 'p' || e.key === 'P') {
+        setIsPaused(prev => !prev);
+        return;
+      }
+      
+      if (isPaused) return;
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          movePiece('left');
+          break;
+        case 'ArrowRight':
+          movePiece('right');
+          break;
+        case 'ArrowDown':
+          movePiece('down');
+          break;
+        case 'ArrowUp':
+          movePiece('rotate');
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [movePiece, gameOver, isPaused]);
+
+  const renderBoard = () => {
+    const displayBoard = board.map(row => [...row]);
+    
+    if (currentPiece) {
+      currentPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            const boardY = currentPiece.y + y;
+            const boardX = currentPiece.x + x;
+            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+              displayBoard[boardY][boardX] = 2;
+            }
+          }
+        });
+      });
+    }
+
+    return displayBoard;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+      <div className="text-center">
+        <h1 className="text-5xl font-bold text-white mb-8">TETRIS</h1>
+        
+        <div className="flex flex-col md:flex-row gap-8 items-start justify-center">
+          {/* Game Board */}
+          <div className="bg-gray-900 p-4 rounded-lg shadow-2xl">
+            <div className="grid gap-[1px] bg-gray-700" style={{
+              gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)`,
+              width: 'fit-content'
+            }}>
+              {renderBoard().map((row, y) =>
+                row.map((cell, x) => (
+                  <div
+                    key={`${y}-${x}`}
+                    className="w-7 h-7 transition-colors"
+                    style={{
+                      backgroundColor: cell === 2 && currentPiece 
+                        ? COLORS[currentPiece.type]
+                        : cell === 1 
+                        ? '#4a5568' 
+                        : '#1a202c'
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Side Panel */}
+          <div className="flex flex-col gap-4">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-white">
+              <h2 className="text-2xl font-bold mb-2">Score</h2>
+              <p className="text-4xl font-bold text-yellow-400">{score}</p>
+            </div>
+
+            <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-white text-left">
+              <h2 className="text-xl font-bold mb-3">Controls</h2>
+              <div className="space-y-2 text-sm">
+                <p>← → : Move</p>
+                <p>↑ : Rotate</p>
+                <p>↓ : Drop faster</p>
+                <p>P : Pause</p>
+              </div>
+            </div>
+
+            {gameOver && (
+              <div className="bg-red-600 p-6 rounded-lg shadow-xl text-white">
+                <h2 className="text-2xl font-bold mb-3">Game Over!</h2>
+                <button
+                  onClick={resetGame}
+                  className="bg-white text-red-600 px-6 py-2 rounded-lg font-bold hover:bg-gray-100 transition"
+                >
+                  Play Again
+                </button>
+              </div>
+            )}
+
+            {isPaused && !gameOver && (
+              <div className="bg-yellow-600 p-6 rounded-lg shadow-xl text-white">
+                <h2 className="text-2xl font-bold">Paused</h2>
+                <p className="text-sm mt-2">Press P to resume</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+

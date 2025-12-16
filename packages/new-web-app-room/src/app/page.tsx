@@ -270,22 +270,26 @@ export default function TetrisGame() {
   };
 
   return (
-    <div className="min-h-screen bg-[#008080] flex flex-col p-2 sm:p-4" style={{ fontFamily: 'Courier New, monospace' }}>
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-4 gap-2">
-        {/* Left Side - Header Content */}
-        <div className="text-left flex-1">
-          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold mb-1 text-[#FFFF00]" style={{ 
-            textShadow: '2px 2px 0px #FF00FF, 4px 4px 0px #00FFFF',
-            letterSpacing: '0.05em'
-          }}>
-            Nullshot&apos;s Tetris Competition
-          </h1>
-          <p className="text-xs sm:text-sm md:text-base lg:text-lg font-bold text-[#00FF00] mb-2" style={{ textShadow: '2px 2px 0px #000' }}>
-            Win $50 USDC - Highest Score Wins!
-          </p>
-          
-          <div className="bg-[#FF00FF] p-2 sm:p-3 rounded-none text-black text-left max-w-xs sm:max-w-sm md:max-w-md border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
+    <div className="min-h-screen bg-[#008080] flex flex-col p-2 sm:p-3" style={{ fontFamily: 'Courier New, monospace' }}>
+      {/* Centered Header */}
+      <div className="text-center mb-2">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 text-[#FFFF00]" style={{ 
+          textShadow: '2px 2px 0px #FF00FF, 4px 4px 0px #00FFFF',
+          letterSpacing: '0.05em'
+        }}>
+          Nullshot&apos;s Tetris Competition
+        </h1>
+        <p className="text-sm sm:text-base md:text-lg font-bold text-[#00FF00]" style={{ textShadow: '2px 2px 0px #000' }}>
+          Win $50 USDC - Highest Score Wins!
+        </p>
+      </div>
+
+      {/* Game Area with 3 columns */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 items-start justify-center max-w-7xl mx-auto w-full">
+        
+        {/* Left Column - Competition Twist */}
+        <div className="w-full lg:w-64 xl:w-72">
+          <div className="bg-[#FF00FF] p-2 sm:p-3 rounded-none text-black text-left border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
             <h2 className="text-xs sm:text-sm md:text-base font-bold mb-1 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>🎮 Competition Twist</h2>
             <p className="mb-1 font-bold text-[9px] sm:text-[10px] md:text-xs">
               Want to make it harder for others? Come into the Jam Studio and prompt changes to increase the difficulty!
@@ -296,26 +300,9 @@ export default function TetrisGame() {
           </div>
         </div>
 
-        {/* Right Side - Start Button */}
-        {!gameStarted && !gameOver && (
-          <div className="flex-shrink-0">
-            <button
-              onClick={startGame}
-              className="bg-[#00FF00] text-black px-4 sm:px-6 md:px-8 py-2 sm:py-3 border-2 sm:border-3 border-[#FFFF00] font-bold text-sm sm:text-base md:text-lg hover:bg-[#FFFF00] hover:text-black transition"
-              style={{ boxShadow: '3px 3px 0px #FF00FF' }}
-            >
-              START GAME
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Game Area */}
-      <div className="text-center w-full max-w-6xl mx-auto flex flex-col items-center flex-1">
-        
-        <div className="flex flex-col lg:flex-row gap-2 sm:gap-3 md:gap-4 items-center lg:items-start justify-center">
-          {/* Game Board */}
-          <div className="bg-black p-1 sm:p-2 md:p-3 border-3 sm:border-4 md:border-6 border-[#00FFFF]" style={{ boxShadow: '4px 4px 0px #FF00FF' }}>
+        {/* Center Column - Game Board */}
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div className="bg-black p-1 sm:p-2 border-3 sm:border-4 border-[#00FFFF]" style={{ boxShadow: '4px 4px 0px #FF00FF' }}>
             <div className="grid gap-[1px] bg-[#808080]" style={{
               gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)`,
               width: 'fit-content'
@@ -324,7 +311,7 @@ export default function TetrisGame() {
                 row.map((cell, x) => (
                   <div
                     key={`${y}-${x}`}
-                    className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6"
+                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
                     style={{
                       backgroundColor: flashingRows.includes(y)
                         ? '#FFFFFF'
@@ -341,22 +328,36 @@ export default function TetrisGame() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Side Panel */}
-          <div className="flex flex-col gap-2 sm:gap-3 w-full lg:w-auto">
-            <div className="bg-[#0000FF] p-2 sm:p-3 md:p-4 border-2 sm:border-3 border-[#FFFF00] text-white" style={{ boxShadow: '3px 3px 0px #000' }}>
-              <h2 className="text-base sm:text-lg md:text-xl font-bold mb-1 text-[#00FFFF]">Score</h2>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-[#FFFF00]">{score}</p>
-              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t-2 border-[#00FFFF]">
+        {/* Right Column - Start Button + Scoreboard */}
+        <div className="w-full lg:w-64 xl:w-72 flex flex-col gap-2 sm:gap-3">
+          {/* Start Button */}
+          {!gameStarted && !gameOver && (
+            <button
+              onClick={startGame}
+              className="bg-[#00FF00] text-black px-4 py-2 sm:py-3 border-2 border-[#FFFF00] font-bold text-sm sm:text-base hover:bg-[#FFFF00] hover:text-black transition w-full"
+              style={{ boxShadow: '3px 3px 0px #FF00FF' }}
+            >
+              START GAME
+            </button>
+          )}
+
+          {/* Scoreboard */}
+          <div className="flex flex-col gap-2 sm:gap-3">
+            <div className="bg-[#0000FF] p-2 sm:p-3 border-2 border-[#FFFF00] text-white" style={{ boxShadow: '3px 3px 0px #000' }}>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-[#00FFFF]">Score</h2>
+              <p className="text-xl sm:text-2xl font-bold text-[#FFFF00]">{score}</p>
+              <div className="mt-2 pt-2 border-t-2 border-[#00FFFF]">
                 <p className="text-xs font-bold">Level: <span className="text-[#00FF00] font-bold">{level}</span></p>
                 <p className="text-xs font-bold">Lines: <span className="text-[#00FF00] font-bold">{linesCleared}</span></p>
                 <p className="text-xs font-bold">Time: <span className="text-[#00FF00] font-bold">{Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}</span></p>
               </div>
             </div>
 
-            <div className="bg-[#FF00FF] p-2 sm:p-3 md:p-4 border-2 sm:border-3 border-[#00FFFF] text-black text-left" style={{ boxShadow: '3px 3px 0px #000' }}>
-              <h2 className="text-sm sm:text-base md:text-lg font-bold mb-1 sm:mb-2 text-[#FFFF00]">Controls</h2>
-              <div className="space-y-1 text-xs font-bold">
+            <div className="bg-[#FF00FF] p-2 sm:p-3 border-2 border-[#00FFFF] text-black text-left" style={{ boxShadow: '3px 3px 0px #000' }}>
+              <h2 className="text-xs sm:text-sm font-bold mb-1 text-[#FFFF00]">Controls</h2>
+              <div className="space-y-1 text-[10px] sm:text-xs font-bold">
                 <p>← → : Move</p>
                 <p>↑ : Rotate</p>
                 <p>↓ : Drop faster</p>
@@ -364,11 +365,11 @@ export default function TetrisGame() {
             </div>
 
             {gameOver && (
-              <div className="bg-[#FF0000] p-2 sm:p-3 md:p-4 border-2 sm:border-3 border-[#FFFF00] text-white" style={{ boxShadow: '3px 3px 0px #000' }}>
-                <h2 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>Game Over!</h2>
+              <div className="bg-[#FF0000] p-2 sm:p-3 border-2 border-[#FFFF00] text-white" style={{ boxShadow: '3px 3px 0px #000' }}>
+                <h2 className="text-sm sm:text-base font-bold mb-1 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>Game Over!</h2>
                 <button
                   onClick={resetGame}
-                  className="bg-[#FFFF00] text-black px-3 sm:px-4 py-1 sm:py-2 border-2 border-black font-bold hover:bg-[#00FF00] transition text-xs sm:text-sm"
+                  className="bg-[#FFFF00] text-black px-3 py-1 sm:py-2 border-2 border-black font-bold hover:bg-[#00FF00] transition text-xs w-full"
                   style={{ boxShadow: '3px 3px 0px #000' }}
                 >
                   Play Again
@@ -381,6 +382,9 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
 
 
 

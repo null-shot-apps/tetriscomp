@@ -43,6 +43,8 @@ export default function TetrisGame() {
   const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [level, setLevel] = useState(1);
+  const [linesCleared, setLinesCleared] = useState(0);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -129,9 +131,15 @@ export default function TetrisGame() {
     if (checkCollision(newPiece, board)) {
       if (direction === 'down') {
         const mergedBoard = mergePiece(currentPiece, board);
-        const { newBoard, linesCleared } = clearLines(mergedBoard);
+        const { newBoard, linesCleared: clearedCount } = clearLines(mergedBoard);
         setBoard(newBoard);
-        setScore(prev => prev + linesCleared * 100);
+        setScore(prev => prev + clearedCount * 100 * level);
+        setLinesCleared(prev => {
+          const newTotal = prev + clearedCount;
+          const newLevel = Math.floor(newTotal / 10) + 1;
+          setLevel(newLevel);
+          return newTotal;
+        });
         
         const nextPiece = createPiece();
         if (checkCollision(nextPiece, newBoard)) {
@@ -151,6 +159,8 @@ export default function TetrisGame() {
     setCurrentPiece(createPiece());
     setScore(0);
     setGameOver(false);
+    setLevel(1);
+    setLinesCleared(0);
   }, [createPiece]);
 
   useEffect(() => {
@@ -162,12 +172,13 @@ export default function TetrisGame() {
   useEffect(() => {
     if (gameOver) return;
 
+    const speed = Math.max(100, 500 - (level - 1) * 50);
     const interval = setInterval(() => {
       movePiece('down');
-    }, 500);
+    }, speed);
 
     return () => clearInterval(interval);
-  }, [movePiece, gameOver]);
+  }, [movePiece, gameOver, level]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -248,6 +259,10 @@ export default function TetrisGame() {
             <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-white">
               <h2 className="text-2xl font-bold mb-2">Score</h2>
               <p className="text-4xl font-bold text-yellow-400">{score}</p>
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <p className="text-sm text-gray-400">Level: <span className="text-white font-bold">{level}</span></p>
+                <p className="text-sm text-gray-400">Lines: <span className="text-white font-bold">{linesCleared}</span></p>
+              </div>
             </div>
 
             <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-white text-left">
@@ -276,6 +291,11 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
+
 
 
 

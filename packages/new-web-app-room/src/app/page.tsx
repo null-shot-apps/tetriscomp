@@ -136,12 +136,7 @@ export default function TetrisGame() {
         const { newBoard, linesCleared: clearedCount } = clearLines(mergedBoard);
         setBoard(newBoard);
         setScore(prev => prev + clearedCount * 100 * level);
-        setLinesCleared(prev => {
-          const newTotal = prev + clearedCount;
-          const newLevel = Math.floor(newTotal / 10) + 1;
-          setLevel(newLevel);
-          return newTotal;
-        });
+        setLinesCleared(prev => prev + clearedCount);
         
         const nextPiece = createPiece();
         if (checkCollision(nextPiece, newBoard)) {
@@ -178,12 +173,18 @@ export default function TetrisGame() {
     }
   }, [currentPiece, gameOver, gameStarted, createPiece]);
 
-  // Timer effect
+  // Timer effect - also updates level based on time
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
     const interval = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
+      setElapsedTime(prev => {
+        const newTime = prev + 1;
+        // Increase level every 30 seconds
+        const newLevel = Math.floor(newTime / 30) + 1;
+        setLevel(newLevel);
+        return newTime;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -313,6 +314,7 @@ export default function TetrisGame() {
               <div className="mt-4 pt-4 border-t-4 border-[#00FFFF]">
                 <p className="text-sm font-bold">Level: <span className="text-[#00FF00] font-bold">{level}</span></p>
                 <p className="text-sm font-bold">Lines: <span className="text-[#00FF00] font-bold">{linesCleared}</span></p>
+                <p className="text-sm font-bold">Time: <span className="text-[#00FF00] font-bold">{Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}</span></p>
               </div>
             </div>
 
@@ -343,6 +345,9 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
 
 
 

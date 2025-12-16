@@ -236,7 +236,7 @@ export default function TetrisGame() {
             Want to make it harder for others? Come into the Jam Studio and prompt changes to increase the difficulty!
           </p>
           <p className="text-sm text-gray-300 italic">
-            Note: The owner will be the final decision maker on which prompted changes will be merged into the game.
+            Note: Nullshot&apos;s Jam room game master will be the final decision maker on which prompted changes will be merged into the game.
           </p>
         </div>
         
@@ -302,6 +302,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

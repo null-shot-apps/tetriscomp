@@ -45,6 +45,8 @@ export default function TetrisGame() {
   const [gameOver, setGameOver] = useState(false);
   const [level, setLevel] = useState(1);
   const [linesCleared, setLinesCleared] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -161,16 +163,34 @@ export default function TetrisGame() {
     setGameOver(false);
     setLevel(1);
     setLinesCleared(0);
+    setGameStarted(false);
+    setElapsedTime(0);
+  }, [createPiece]);
+
+  const startGame = useCallback(() => {
+    setGameStarted(true);
+    setCurrentPiece(createPiece());
   }, [createPiece]);
 
   useEffect(() => {
-    if (!currentPiece && !gameOver) {
+    if (!currentPiece && !gameOver && gameStarted) {
       setCurrentPiece(createPiece());
     }
-  }, [currentPiece, gameOver, createPiece]);
+  }, [currentPiece, gameOver, gameStarted, createPiece]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!gameStarted || gameOver) return;
+
+    const interval = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameStarted, gameOver]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || !gameStarted) return;
 
     const speed = Math.max(100, 500 - (level - 1) * 50);
     const interval = setInterval(() => {
@@ -178,7 +198,7 @@ export default function TetrisGame() {
     }, speed);
 
     return () => clearInterval(interval);
-  }, [movePiece, gameOver, level]);
+  }, [movePiece, gameOver, gameStarted, level]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -246,6 +266,18 @@ export default function TetrisGame() {
             Note: Nullshot&apos;s Jam room game master will be the final decision maker on which prompted changes will be merged into the game.
           </p>
         </div>
+
+        {!gameStarted && !gameOver && (
+          <div className="mb-8">
+            <button
+              onClick={startGame}
+              className="bg-[#00FF00] text-black px-12 py-6 border-8 border-[#FFFF00] font-bold text-3xl hover:bg-[#FFFF00] hover:text-black transition"
+              style={{ boxShadow: '12px 12px 0px #FF00FF' }}
+            >
+              START GAME
+            </button>
+          </div>
+        )}
         
         <div className="flex flex-col md:flex-row gap-8 items-start justify-center">
           {/* Game Board */}
@@ -311,6 +343,11 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
+
 
 
 

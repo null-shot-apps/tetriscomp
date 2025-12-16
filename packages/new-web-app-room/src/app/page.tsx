@@ -43,7 +43,6 @@ export default function TetrisGame() {
   const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -117,7 +116,7 @@ export default function TetrisGame() {
   }, []);
 
   const movePiece = useCallback((direction: 'left' | 'right' | 'down' | 'rotate') => {
-    if (!currentPiece || gameOver || isPaused) return;
+    if (!currentPiece || gameOver) return;
 
     const newPiece = direction === 'left' 
       ? { ...currentPiece, x: currentPiece.x - 1 }
@@ -145,14 +144,13 @@ export default function TetrisGame() {
     }
 
     setCurrentPiece(newPiece);
-  }, [currentPiece, board, gameOver, isPaused, checkCollision, mergePiece, clearLines, createPiece, rotatePiece]);
+  }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece]);
 
   const resetGame = useCallback(() => {
     setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
     setCurrentPiece(createPiece());
     setScore(0);
     setGameOver(false);
-    setIsPaused(false);
   }, [createPiece]);
 
   useEffect(() => {
@@ -162,25 +160,18 @@ export default function TetrisGame() {
   }, [currentPiece, gameOver, createPiece]);
 
   useEffect(() => {
-    if (gameOver || isPaused) return;
+    if (gameOver) return;
 
     const interval = setInterval(() => {
       movePiece('down');
     }, 500);
 
     return () => clearInterval(interval);
-  }, [movePiece, gameOver, isPaused]);
+  }, [movePiece, gameOver]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (gameOver) return;
-      
-      if (e.key === 'p' || e.key === 'P') {
-        setIsPaused(prev => !prev);
-        return;
-      }
-      
-      if (isPaused) return;
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -200,7 +191,7 @@ export default function TetrisGame() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [movePiece, gameOver, isPaused]);
+  }, [movePiece, gameOver]);
 
   const renderBoard = () => {
     const displayBoard = board.map(row => [...row]);
@@ -265,7 +256,6 @@ export default function TetrisGame() {
                 <p>← → : Move</p>
                 <p>↑ : Rotate</p>
                 <p>↓ : Drop faster</p>
-                <p>P : Pause</p>
               </div>
             </div>
 
@@ -280,18 +270,19 @@ export default function TetrisGame() {
                 </button>
               </div>
             )}
-
-            {isPaused && !gameOver && (
-              <div className="bg-yellow-600 p-6 rounded-lg shadow-xl text-white">
-                <h2 className="text-2xl font-bold">Paused</h2>
-                <p className="text-sm mt-2">Press P to resume</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 

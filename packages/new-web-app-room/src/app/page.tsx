@@ -270,24 +270,24 @@ export default function TetrisGame() {
   };
 
   return (
-    <div className="h-screen bg-[#008080] flex items-center justify-center p-2 sm:p-4 overflow-hidden" style={{ fontFamily: 'Courier New, monospace' }}>
-      <div className="text-center w-full max-w-6xl mx-auto h-full flex flex-col justify-center overflow-y-auto">
-        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 text-[#FFFF00]" style={{ 
+    <div className="min-h-screen bg-[#008080] flex items-center justify-center p-2 sm:p-4" style={{ fontFamily: 'Courier New, monospace' }}>
+      <div className="text-center w-full max-w-6xl mx-auto flex flex-col items-center">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold mb-1 sm:mb-2 text-[#FFFF00] px-2" style={{ 
           textShadow: '2px 2px 0px #FF00FF, 4px 4px 0px #00FFFF',
-          letterSpacing: '0.1em'
+          letterSpacing: '0.05em'
         }}>
           Nullshot&apos;s Tetris Competition
         </h1>
-        <p className="text-base sm:text-lg md:text-xl font-bold text-[#00FF00] mb-2" style={{ textShadow: '2px 2px 0px #000' }}>
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-[#00FF00] mb-2 sm:mb-3 px-2" style={{ textShadow: '2px 2px 0px #000' }}>
           Win $50 USDC - Highest Score Wins!
         </p>
         
-        <div className="bg-[#FF00FF] p-2 sm:p-3 md:p-4 rounded-none mb-2 sm:mb-3 text-black text-left max-w-2xl mx-auto border-2 sm:border-3 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
-          <h2 className="text-sm sm:text-base md:text-lg font-bold mb-1 sm:mb-2 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>🎮 Competition Twist</h2>
-          <p className="mb-1 sm:mb-2 font-bold text-xs sm:text-sm">
+        <div className="bg-[#FF00FF] p-2 sm:p-3 md:p-4 rounded-none mb-2 sm:mb-3 md:mb-4 text-black text-left w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl mx-auto border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
+          <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mb-1 sm:mb-2 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>🎮 Competition Twist</h2>
+          <p className="mb-1 sm:mb-2 font-bold text-[10px] sm:text-xs md:text-sm">
             Want to make it harder for others? Come into the Jam Studio and prompt changes to increase the difficulty!
           </p>
-          <p className="text-xs font-bold">
+          <p className="text-[9px] sm:text-[10px] md:text-xs font-bold">
             Note: Nullshot&apos;s Jam room game master will be the final decision maker on which prompted changes will be merged into the game.
           </p>
         </div>
@@ -372,6 +372,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

@@ -226,8 +226,19 @@ export default function TetrisGame() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-white mb-8">TETRIS</h1>
+      <div className="text-center max-w-6xl mx-auto">
+        <h1 className="text-5xl font-bold text-white mb-2">Nullshot&apos;s Tetris Competition</h1>
+        <p className="text-2xl font-bold text-yellow-400 mb-4">Win $50 USDC - Highest Score Wins!</p>
+        
+        <div className="bg-blue-900/50 backdrop-blur-sm p-6 rounded-lg mb-6 text-white text-left max-w-2xl mx-auto border-2 border-blue-400">
+          <h2 className="text-xl font-bold mb-3 text-yellow-300">🎮 Competition Twist</h2>
+          <p className="mb-3">
+            Want to make it harder for others? Come into the Jam Studio and prompt changes to increase the difficulty!
+          </p>
+          <p className="text-sm text-gray-300 italic">
+            Note: The owner will be the final decision maker on which prompted changes will be merged into the game.
+          </p>
+        </div>
         
         <div className="flex flex-col md:flex-row gap-8 items-start justify-center">
           {/* Game Board */}
@@ -291,6 +302,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

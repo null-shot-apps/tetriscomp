@@ -47,6 +47,7 @@ export default function TetrisGame() {
   const [linesCleared, setLinesCleared] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [flashingRows, setFlashingRows] = useState<number[]>([]);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -95,7 +96,14 @@ export default function TetrisGame() {
     return newBoard;
   }, []);
 
-  const clearLines = useCallback((board: Board): { newBoard: Board; linesCleared: number } => {
+  const clearLines = useCallback((board: Board): { newBoard: Board; linesCleared: number; completedRows: number[] } => {
+    const completedRows: number[] = [];
+    board.forEach((row, index) => {
+      if (row.every(cell => cell === 1)) {
+        completedRows.push(index);
+      }
+    });
+    
     let linesCleared = 0;
     const newBoard = board.filter(row => {
       if (row.every(cell => cell === 1)) {
@@ -109,7 +117,7 @@ export default function TetrisGame() {
       newBoard.unshift(Array(BOARD_WIDTH).fill(0));
     }
     
-    return { newBoard, linesCleared };
+    return { newBoard, linesCleared, completedRows };
   }, []);
 
   const rotatePiece = useCallback((piece: Piece): number[][] => {
@@ -133,16 +141,32 @@ export default function TetrisGame() {
     if (checkCollision(newPiece, board)) {
       if (direction === 'down') {
         const mergedBoard = mergePiece(currentPiece, board);
-        const { newBoard, linesCleared: clearedCount } = clearLines(mergedBoard);
-        setBoard(newBoard);
-        setScore(prev => prev + clearedCount * 100 * level);
-        setLinesCleared(prev => prev + clearedCount);
+        const { newBoard, linesCleared: clearedCount, completedRows } = clearLines(mergedBoard);
         
-        const nextPiece = createPiece();
-        if (checkCollision(nextPiece, newBoard)) {
-          setGameOver(true);
+        if (completedRows.length > 0) {
+          // Flash animation
+          setFlashingRows(completedRows);
+          setTimeout(() => {
+            setBoard(newBoard);
+            setScore(prev => prev + clearedCount * 100 * level);
+            setLinesCleared(prev => prev + clearedCount);
+            setFlashingRows([]);
+            
+            const nextPiece = createPiece();
+            if (checkCollision(nextPiece, newBoard)) {
+              setGameOver(true);
+            } else {
+              setCurrentPiece(nextPiece);
+            }
+          }, 300);
         } else {
-          setCurrentPiece(nextPiece);
+          setBoard(newBoard);
+          const nextPiece = createPiece();
+          if (checkCollision(nextPiece, newBoard)) {
+            setGameOver(true);
+          } else {
+            setCurrentPiece(nextPiece);
+          }
         }
       }
       return;
@@ -293,12 +317,15 @@ export default function TetrisGame() {
                     key={`${y}-${x}`}
                     className="w-7 h-7"
                     style={{
-                      backgroundColor: cell === 2 && currentPiece 
+                      backgroundColor: flashingRows.includes(y)
+                        ? '#FFFFFF'
+                        : cell === 2 && currentPiece 
                         ? COLORS[currentPiece.type]
                         : cell === 1 
                         ? '#808080' 
                         : '#000000',
-                      border: cell ? '2px solid rgba(255,255,255,0.3)' : 'none'
+                      border: cell ? '2px solid rgba(255,255,255,0.3)' : 'none',
+                      transition: 'background-color 0.1s'
                     }}
                   />
                 ))
@@ -345,6 +372,10 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
 
 
 

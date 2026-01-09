@@ -49,6 +49,7 @@ export default function TetrisGame() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.15);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicGainNodeRef = useRef<GainNode | null>(null);
@@ -198,7 +199,7 @@ export default function TetrisGame() {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 0.15;
+      gainNode.gain.value = musicVolume;
       gainNode.connect(audioContextRef.current.destination);
       musicGainNodeRef.current = gainNode;
     }
@@ -206,6 +207,9 @@ export default function TetrisGame() {
     const ctx = audioContextRef.current;
     const gainNode = musicGainNodeRef.current;
     if (!ctx || !gainNode) return;
+    
+    // Update volume
+    gainNode.gain.value = musicVolume;
 
     // Tetris theme melody (simplified)
     const melody = [
@@ -235,7 +239,7 @@ export default function TetrisGame() {
     
     // Volume increases slightly with level
     const volumeMultiplier = 1 + (currentLevel - 1) * 0.05;
-    gainNode.gain.value = Math.min(0.3, 0.15 * volumeMultiplier);
+    gainNode.gain.value = Math.min(1.0, musicVolume * volumeMultiplier);
 
     const currentTime = ctx.currentTime;
     
@@ -287,6 +291,26 @@ export default function TetrisGame() {
       return newMuted;
     });
   }, [stopMusic, startMusic, level, gameStarted, gameOver]);
+
+  const increaseVolume = useCallback(() => {
+    setMusicVolume(prev => {
+      const newVolume = Math.min(1.0, prev + 0.1);
+      if (musicGainNodeRef.current) {
+        musicGainNodeRef.current.gain.value = newVolume;
+      }
+      return newVolume;
+    });
+  }, []);
+
+  const decreaseVolume = useCallback(() => {
+    setMusicVolume(prev => {
+      const newVolume = Math.max(0, prev - 0.1);
+      if (musicGainNodeRef.current) {
+        musicGainNodeRef.current.gain.value = newVolume;
+      }
+      return newVolume;
+    });
+  }, []);
 
   useEffect(() => {
     if (!currentPiece && !gameOver && gameStarted) {
@@ -479,13 +503,34 @@ export default function TetrisGame() {
                 <p>↑ : Rotate</p>
                 <p>↓ : Drop faster</p>
               </div>
-              <button
-                onClick={toggleMusic}
-                className="mt-2 bg-[#FFFF00] text-black px-2 py-1 border-2 border-black font-bold hover:bg-[#00FF00] transition text-[10px] sm:text-xs w-full"
-                style={{ boxShadow: '2px 2px 0px #000' }}
-              >
-                {isMusicMuted ? '🔇 Unmute Music' : '🔊 Mute Music'}
-              </button>
+              <div className="mt-2 space-y-1">
+                <button
+                  onClick={toggleMusic}
+                  className="bg-[#FFFF00] text-black px-2 py-1 border-2 border-black font-bold hover:bg-[#00FF00] transition text-[10px] sm:text-xs w-full"
+                  style={{ boxShadow: '2px 2px 0px #000' }}
+                >
+                  {isMusicMuted ? '🔇 Unmute Music' : '🔊 Mute Music'}
+                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={decreaseVolume}
+                    className="flex-1 bg-[#00FFFF] text-black px-2 py-1 border-2 border-black font-bold hover:bg-[#00FF00] transition text-[10px] sm:text-xs"
+                    style={{ boxShadow: '2px 2px 0px #000' }}
+                    disabled={isMusicMuted}
+                  >
+                    🔉 -
+                  </button>
+                  <button
+                    onClick={increaseVolume}
+                    className="flex-1 bg-[#00FFFF] text-black px-2 py-1 border-2 border-black font-bold hover:bg-[#00FF00] transition text-[10px] sm:text-xs"
+                    style={{ boxShadow: '2px 2px 0px #000' }}
+                    disabled={isMusicMuted}
+                  >
+                    🔊 +
+                  </button>
+                </div>
+                <p className="text-[9px] text-center font-bold">Volume: {Math.round(musicVolume * 100)}%</p>
+              </div>
             </div>
 
             {gameOver && (
@@ -506,6 +551,11 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
+
 
 
 

@@ -287,8 +287,18 @@ export default function TetrisGame() {
       {/* Game Area with 3 columns */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 items-start justify-center max-w-7xl mx-auto w-full">
         
-        {/* Left Column - Competition Twist */}
-        <div className="w-full lg:w-64 xl:w-72">
+        {/* Left Column - How to Win + Competition Twist */}
+        <div className="w-full lg:w-64 xl:w-72 flex flex-col gap-2 sm:gap-3">
+          {/* How to Win */}
+          <div className="bg-[#00FF00] p-2 sm:p-3 rounded-none text-black text-left border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
+            <h2 className="text-xs sm:text-sm md:text-base font-bold mb-1 text-[#FF00FF]" style={{ textShadow: '1px 1px 0px #000' }}>🏆 How to Win</h2>
+            <ol className="list-decimal list-inside space-y-1 font-bold text-[9px] sm:text-[10px] md:text-xs">
+              <li>Play the Tetris game as many times as you want</li>
+              <li>Submit your screenshot of the highscore and tag #nullshotgames and tag @nullshot.ai with the screenshot</li>
+            </ol>
+          </div>
+
+          {/* Competition Twist */}
           <div className="bg-[#FF00FF] p-2 sm:p-3 rounded-none text-black text-left border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
             <h2 className="text-xs sm:text-sm md:text-base font-bold mb-1 text-[#FFFF00]" style={{ textShadow: '2px 2px 0px #000' }}>🎮 Competition Twist</h2>
             <p className="mb-1 font-bold text-[9px] sm:text-[10px] md:text-xs">
@@ -382,6 +392,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

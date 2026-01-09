@@ -23,6 +23,45 @@ const COLORS = {
   L: '#FFA500'
 };
 
+const COLOR_THEMES = {
+  classic: {
+    I: '#00FFFF',
+    O: '#FFFF00',
+    T: '#FF00FF',
+    S: '#00FF00',
+    Z: '#FF0000',
+    J: '#0000FF',
+    L: '#FFA500'
+  },
+  neon: {
+    I: '#00FFFF',
+    O: '#FFFF00',
+    T: '#FF1493',
+    S: '#39FF14',
+    Z: '#FF073A',
+    J: '#00BFFF',
+    L: '#FF6600'
+  },
+  pastel: {
+    I: '#B4E7F5',
+    O: '#FFF9B1',
+    T: '#FFB3E6',
+    S: '#B3FFB3',
+    Z: '#FFB3B3',
+    J: '#B3B3FF',
+    L: '#FFD9B3'
+  }
+};
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  color: string;
+}
+
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 
@@ -50,6 +89,9 @@ export default function TetrisGame() {
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.15);
+  const [colorTheme, setColorTheme] = useState<keyof typeof COLOR_THEMES>('classic');
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const [screenShake, setScreenShake] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicGainNodeRef = useRef<GainNode | null>(null);
@@ -126,6 +168,33 @@ export default function TetrisGame() {
     return { newBoard, linesCleared, completedRows };
   }, []);
 
+  const createParticles = useCallback((rows: number[]) => {
+    const newParticles: Particle[] = [];
+    rows.forEach(row => {
+      for (let x = 0; x < BOARD_WIDTH; x++) {
+        for (let i = 0; i < 3; i++) {
+          newParticles.push({
+            x: x * 24 + 12,
+            y: row * 24 + 12,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4 - 2,
+            life: 1,
+            color: ['#FFFF00', '#00FFFF', '#FF00FF', '#00FF00'][Math.floor(Math.random() * 4)]
+          });
+        }
+      }
+    });
+    setParticles(newParticles);
+  }, []);
+
+  const getGhostPieceY = useCallback((piece: Piece, board: Board): number => {
+    let ghostY = piece.y;
+    while (!checkCollision({ ...piece, y: ghostY + 1 }, board)) {
+      ghostY++;
+    }
+    return ghostY;
+  }, [checkCollision]);
+
   const rotatePiece = useCallback((piece: Piece): number[][] => {
     const rotated = piece.shape[0].map((_, i) =>
       piece.shape.map(row => row[i]).reverse()
@@ -150,8 +219,16 @@ export default function TetrisGame() {
         const { newBoard, linesCleared: clearedCount, completedRows } = clearLines(mergedBoard);
         
         if (completedRows.length > 0) {
-          // Flash animation
+          // Flash animation and particles
           setFlashingRows(completedRows);
+          createParticles(completedRows);
+          
+          // Screen shake for Tetris (4 lines)
+          if (clearedCount === 4) {
+            setScreenShake(true);
+            setTimeout(() => setScreenShake(false), 300);
+          }
+          
           setTimeout(() => {
             setBoard(newBoard);
             setScore(prev => prev + clearedCount * 100 * level);
@@ -179,7 +256,28 @@ export default function TetrisGame() {
     }
 
     setCurrentPiece(newPiece);
-  }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece, level]);
+  }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece, level, createParticles]);
+
+  // Particle animation
+  useEffect(() => {
+    if (particles.length === 0) return;
+
+    const interval = setInterval(() => {
+      setParticles(prev => 
+        prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy + 0.2,
+            life: p.life - 0.02
+          }))
+          .filter(p => p.life > 0)
+      );
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [particles.length]);
 
   const stopMusic = useCallback(() => {
     if (musicTimeoutRef.current) {
@@ -383,6 +481,23 @@ export default function TetrisGame() {
   const renderBoard = () => {
     const displayBoard = board.map(row => [...row]);
     
+    // Draw ghost piece
+    if (currentPiece) {
+      const ghostY = getGhostPieceY(currentPiece, board);
+      currentPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            const boardY = ghostY + y;
+            const boardX = currentPiece.x + x;
+            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH && displayBoard[boardY][boardX] === 0) {
+              displayBoard[boardY][boardX] = 3; // Ghost piece marker
+            }
+          }
+        });
+      });
+    }
+    
+    // Draw current piece
     if (currentPiece) {
       currentPiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
@@ -443,8 +558,11 @@ export default function TetrisGame() {
 
         {/* Center Column - Game Board */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0">
-          <div className="bg-black p-1 sm:p-2 border-3 sm:border-4 border-[#00FFFF]" style={{ boxShadow: '4px 4px 0px #FF00FF' }}>
-            <div className="grid gap-[1px] bg-[#808080]" style={{
+          <div 
+            className={`bg-black p-1 sm:p-2 border-3 sm:border-4 border-[#00FFFF] relative ${screenShake ? 'animate-shake' : ''}`} 
+            style={{ boxShadow: '4px 4px 0px #FF00FF' }}
+          >
+            <div className="grid gap-[1px] bg-[#808080] relative" style={{
               gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)`,
               width: 'fit-content'
             }}>
@@ -456,18 +574,54 @@ export default function TetrisGame() {
                     style={{
                       backgroundColor: flashingRows.includes(y)
                         ? '#FFFFFF'
+                        : cell === 3 && currentPiece
+                        ? COLOR_THEMES[colorTheme][currentPiece.type] + '40' // Ghost piece (transparent)
                         : cell === 2 && currentPiece 
-                        ? COLORS[currentPiece.type]
+                        ? COLOR_THEMES[colorTheme][currentPiece.type]
                         : cell === 1 
                         ? '#808080' 
                         : '#000000',
                       border: cell ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                      transition: 'background-color 0.1s'
+                      transition: 'background-color 0.1s',
+                      boxShadow: cell === 2 ? 'inset 0 0 10px rgba(255,255,255,0.3)' : 'none'
                     }}
                   />
                 ))
               )}
             </div>
+            
+            {/* Particle effects */}
+            {particles.map((particle, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 rounded-full pointer-events-none"
+                style={{
+                  left: `${particle.x}px`,
+                  top: `${particle.y}px`,
+                  backgroundColor: particle.color,
+                  opacity: particle.life,
+                  boxShadow: `0 0 4px ${particle.color}`
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Color Theme Selector */}
+          <div className="flex gap-1">
+            {(Object.keys(COLOR_THEMES) as Array<keyof typeof COLOR_THEMES>).map(theme => (
+              <button
+                key={theme}
+                onClick={() => setColorTheme(theme)}
+                className={`px-2 py-1 text-[10px] font-bold border-2 ${
+                  colorTheme === theme 
+                    ? 'bg-[#FFFF00] border-[#FF00FF]' 
+                    : 'bg-[#00FFFF] border-black'
+                }`}
+                style={{ boxShadow: '2px 2px 0px #000' }}
+              >
+                {theme.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -551,6 +705,13 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

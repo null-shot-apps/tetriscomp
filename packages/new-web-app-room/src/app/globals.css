@@ -147,3 +147,22 @@ body {
 .animate-bounce-horizontal {
   animation: bounce-horizontal 1.5s ease-in-out infinite;
 }
+
+/* Screen shake animation for Tetris clears */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, 2px); }
+  20% { transform: translate(3px, -2px); }
+  30% { transform: translate(-3px, -2px); }
+  40% { transform: translate(3px, 2px); }
+  50% { transform: translate(-3px, 2px); }
+  60% { transform: translate(3px, -2px); }
+  70% { transform: translate(-3px, -2px); }
+  80% { transform: translate(3px, 2px); }
+  90% { transform: translate(-3px, 2px); }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+

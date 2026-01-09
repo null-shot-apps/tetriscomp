@@ -48,6 +48,7 @@ export default function TetrisGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicGainNodeRef = useRef<GainNode | null>(null);
@@ -192,6 +193,8 @@ export default function TetrisGame() {
   }, []);
 
   const startMusic = useCallback((currentLevel: number) => {
+    if (isMusicMuted) return;
+    
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       const gainNode = audioContextRef.current.createGain();
@@ -251,7 +254,7 @@ export default function TetrisGame() {
     
     const totalDuration = melody.reduce((sum, { duration }) => sum + duration / speedMultiplier, 0);
     musicTimeoutRef.current = setTimeout(() => startMusic(currentLevel), totalDuration * 1000);
-  }, []);
+  }, [isMusicMuted]);
 
   const resetGame = useCallback(() => {
     stopMusic();
@@ -268,8 +271,22 @@ export default function TetrisGame() {
   const startGame = useCallback(() => {
     setGameStarted(true);
     setCurrentPiece(createPiece());
-    startMusic(1);
-  }, [createPiece, startMusic]);
+    if (!isMusicMuted) {
+      startMusic(1);
+    }
+  }, [createPiece, startMusic, isMusicMuted]);
+
+  const toggleMusic = useCallback(() => {
+    setIsMusicMuted(prev => {
+      const newMuted = !prev;
+      if (newMuted) {
+        stopMusic();
+      } else if (gameStarted && !gameOver) {
+        startMusic(level);
+      }
+      return newMuted;
+    });
+  }, [stopMusic, startMusic, level, gameStarted, gameOver]);
 
   useEffect(() => {
     if (!currentPiece && !gameOver && gameStarted) {
@@ -296,13 +313,13 @@ export default function TetrisGame() {
 
   // Restart music when level changes to update speed
   useEffect(() => {
-    if (gameStarted && !gameOver && audioContextRef.current) {
+    if (gameStarted && !gameOver && !isMusicMuted && audioContextRef.current) {
       if (musicTimeoutRef.current) {
         clearTimeout(musicTimeoutRef.current);
       }
       startMusic(level);
     }
-  }, [level, gameStarted, gameOver, startMusic]);
+  }, [level, gameStarted, gameOver, isMusicMuted, startMusic]);
 
   useEffect(() => {
     if (gameOver || !gameStarted) return;
@@ -462,6 +479,13 @@ export default function TetrisGame() {
                 <p>↑ : Rotate</p>
                 <p>↓ : Drop faster</p>
               </div>
+              <button
+                onClick={toggleMusic}
+                className="mt-2 bg-[#FFFF00] text-black px-2 py-1 border-2 border-black font-bold hover:bg-[#00FF00] transition text-[10px] sm:text-xs w-full"
+                style={{ boxShadow: '2px 2px 0px #000' }}
+              >
+                {isMusicMuted ? '🔇 Unmute Music' : '🔊 Mute Music'}
+              </button>
             </div>
 
             {gameOver && (
@@ -482,4 +506,10 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
+
+
 

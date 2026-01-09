@@ -294,7 +294,7 @@ export default function TetrisGame() {
             <h2 className="text-xs sm:text-sm md:text-base font-bold mb-1 text-[#FF00FF]" style={{ textShadow: '1px 1px 0px #000' }}>🏆 How to Win</h2>
             <ol className="list-decimal list-inside space-y-1 font-bold text-[9px] sm:text-[10px] md:text-xs">
               <li>Play the Tetris game as many times as you want</li>
-              <li>Submit your screenshot of the highscore and tag #nullshotgames and tag @nullshot.ai with the screenshot</li>
+              <li>Submit your screenshot of the highscore and tag #nullshotgames</li>
             </ol>
           </div>
 
@@ -392,6 +392,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

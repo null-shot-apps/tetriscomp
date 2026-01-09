@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 // Tetris piece shapes
 const SHAPES = {
@@ -48,9 +48,10 @@ export default function TetrisGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
-  const [musicGainNode, setMusicGainNode] = useState<GainNode | null>(null);
-  const [musicOscillators, setMusicOscillators] = useState<OscillatorNode[]>([]);
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const musicGainNodeRef = useRef<GainNode | null>(null);
+  const musicTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -176,30 +177,32 @@ export default function TetrisGame() {
     }
 
     setCurrentPiece(newPiece);
-  }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece]);
+  }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece, level]);
 
-  const resetGame = useCallback(() => {
-    stopMusic();
-    setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
-    setCurrentPiece(createPiece());
-    setScore(0);
-    setGameOver(false);
-    setLevel(1);
-    setLinesCleared(0);
-    setGameStarted(false);
-    setElapsedTime(0);
-  }, [createPiece, stopMusic]);
+  const stopMusic = useCallback(() => {
+    if (musicTimeoutRef.current) {
+      clearTimeout(musicTimeoutRef.current);
+      musicTimeoutRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    musicGainNodeRef.current = null;
+  }, []);
 
-  const startMusic = useCallback(() => {
-    if (audioContext) return;
+  const startMusic = useCallback((currentLevel: number) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 0.15;
+      gainNode.connect(audioContextRef.current.destination);
+      musicGainNodeRef.current = gainNode;
+    }
 
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const gainNode = ctx.createGain();
-    gainNode.gain.value = 0.15;
-    gainNode.connect(ctx.destination);
-
-    setAudioContext(ctx);
-    setMusicGainNode(gainNode);
+    const ctx = audioContextRef.current;
+    const gainNode = musicGainNodeRef.current;
+    if (!ctx || !gainNode) return;
 
     // Tetris theme melody (simplified)
     const melody = [
@@ -224,52 +227,48 @@ export default function TetrisGame() {
       { note: 440.00, duration: 0.4 }, // A
     ];
 
-    let currentTime = ctx.currentTime;
-    const oscillators: OscillatorNode[] = [];
+    // Speed multiplier based on level (gets faster as level increases)
+    const speedMultiplier = 1 + (currentLevel - 1) * 0.15;
+    
+    // Volume increases slightly with level
+    const volumeMultiplier = 1 + (currentLevel - 1) * 0.05;
+    gainNode.gain.value = Math.min(0.3, 0.15 * volumeMultiplier);
 
-    const playMelody = () => {
-      melody.forEach(({ note, duration }) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.value = note;
-        osc.connect(gainNode);
-        osc.start(currentTime);
-        osc.stop(currentTime + duration);
-        oscillators.push(osc);
-        currentTime += duration;
-      });
-    };
-
-    // Loop the melody
-    const loopMusic = () => {
-      playMelody();
-      setTimeout(loopMusic, melody.reduce((sum, { duration }) => sum + duration, 0) * 1000);
-    };
-
-    loopMusic();
-    setMusicOscillators(oscillators);
-  }, [audioContext]);
-
-  const stopMusic = useCallback(() => {
-    musicOscillators.forEach(osc => {
-      try {
-        osc.stop();
-      } catch (e) {
-        // Already stopped
-      }
+    const currentTime = ctx.currentTime;
+    
+    melody.forEach(({ note, duration }, index) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = note;
+      osc.connect(gainNode);
+      
+      const adjustedDuration = duration / speedMultiplier;
+      const startTime = currentTime + melody.slice(0, index).reduce((sum, { duration }) => sum + duration / speedMultiplier, 0);
+      
+      osc.start(startTime);
+      osc.stop(startTime + adjustedDuration);
     });
-    if (audioContext) {
-      audioContext.close();
-    }
-    setAudioContext(null);
-    setMusicGainNode(null);
-    setMusicOscillators([]);
-  }, [audioContext, musicOscillators]);
+    
+    const totalDuration = melody.reduce((sum, { duration }) => sum + duration / speedMultiplier, 0);
+    musicTimeoutRef.current = setTimeout(() => startMusic(currentLevel), totalDuration * 1000);
+  }, []);
+
+  const resetGame = useCallback(() => {
+    stopMusic();
+    setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
+    setCurrentPiece(createPiece());
+    setScore(0);
+    setGameOver(false);
+    setLevel(1);
+    setLinesCleared(0);
+    setGameStarted(false);
+    setElapsedTime(0);
+  }, [createPiece, stopMusic]);
 
   const startGame = useCallback(() => {
     setGameStarted(true);
     setCurrentPiece(createPiece());
-    startMusic();
+    startMusic(1);
   }, [createPiece, startMusic]);
 
   useEffect(() => {
@@ -295,14 +294,15 @@ export default function TetrisGame() {
     return () => clearInterval(interval);
   }, [gameStarted, gameOver]);
 
-  // Update music speed based on level
+  // Restart music when level changes to update speed
   useEffect(() => {
-    if (musicGainNode && audioContext) {
-      // Increase volume and pitch slightly as level increases
-      const volumeMultiplier = 1 + (level - 1) * 0.05;
-      musicGainNode.gain.value = Math.min(0.3, 0.15 * volumeMultiplier);
+    if (gameStarted && !gameOver && audioContextRef.current) {
+      if (musicTimeoutRef.current) {
+        clearTimeout(musicTimeoutRef.current);
+      }
+      startMusic(level);
     }
-  }, [level, musicGainNode, audioContext]);
+  }, [level, gameStarted, gameOver, startMusic]);
 
   useEffect(() => {
     if (gameOver || !gameStarted) return;
@@ -482,54 +482,4 @@ export default function TetrisGame() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

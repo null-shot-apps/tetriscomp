@@ -88,7 +88,7 @@ export default function TetrisGame() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.15);
+  const [musicVolume, setMusicVolume] = useState(0.05);
   const [colorTheme, setColorTheme] = useState<keyof typeof COLOR_THEMES>('classic');
   const [particles, setParticles] = useState<Particle[]>([]);
   const [screenShake, setScreenShake] = useState(false);
@@ -607,21 +607,24 @@ export default function TetrisGame() {
           </div>
           
           {/* Color Theme Selector */}
-          <div className="flex gap-1">
-            {(Object.keys(COLOR_THEMES) as Array<keyof typeof COLOR_THEMES>).map(theme => (
-              <button
-                key={theme}
-                onClick={() => setColorTheme(theme)}
-                className={`px-2 py-1 text-[10px] font-bold border-2 ${
-                  colorTheme === theme 
-                    ? 'bg-[#FFFF00] border-[#FF00FF]' 
-                    : 'bg-[#00FFFF] border-black'
-                }`}
-                style={{ boxShadow: '2px 2px 0px #000' }}
-              >
-                {theme.toUpperCase()}
-              </button>
-            ))}
+          <div className="bg-[#FF00FF] p-2 border-2 border-[#FFFF00]" style={{ boxShadow: '3px 3px 0px #000' }}>
+            <h3 className="text-[10px] font-bold mb-1 text-white">Color Theme:</h3>
+            <div className="flex gap-1">
+              {(Object.keys(COLOR_THEMES) as Array<keyof typeof COLOR_THEMES>).map(theme => (
+                <button
+                  key={theme}
+                  onClick={() => setColorTheme(theme)}
+                  className={`px-2 py-1 text-[10px] font-bold border-2 ${
+                    colorTheme === theme 
+                      ? 'bg-[#FFFF00] border-black text-black' 
+                      : 'bg-white border-black text-black'
+                  }`}
+                  style={{ boxShadow: '2px 2px 0px #000' }}
+                >
+                  {theme.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -705,6 +708,7 @@ export default function TetrisGame() {
     </div>
   );
 }
+
 
 
 

@@ -48,6 +48,9 @@ export default function TetrisGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [flashingRows, setFlashingRows] = useState<number[]>([]);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [musicGainNode, setMusicGainNode] = useState<GainNode | null>(null);
+  const [musicOscillators, setMusicOscillators] = useState<OscillatorNode[]>([]);
 
   const createPiece = useCallback((): Piece => {
     const types = Object.keys(SHAPES) as ShapeType[];
@@ -176,6 +179,7 @@ export default function TetrisGame() {
   }, [currentPiece, board, gameOver, checkCollision, mergePiece, clearLines, createPiece, rotatePiece]);
 
   const resetGame = useCallback(() => {
+    stopMusic();
     setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
     setCurrentPiece(createPiece());
     setScore(0);
@@ -184,12 +188,89 @@ export default function TetrisGame() {
     setLinesCleared(0);
     setGameStarted(false);
     setElapsedTime(0);
-  }, [createPiece]);
+  }, [createPiece, stopMusic]);
+
+  const startMusic = useCallback(() => {
+    if (audioContext) return;
+
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0.15;
+    gainNode.connect(ctx.destination);
+
+    setAudioContext(ctx);
+    setMusicGainNode(gainNode);
+
+    // Tetris theme melody (simplified)
+    const melody = [
+      { note: 659.25, duration: 0.4 }, // E
+      { note: 493.88, duration: 0.2 }, // B
+      { note: 523.25, duration: 0.2 }, // C
+      { note: 587.33, duration: 0.4 }, // D
+      { note: 523.25, duration: 0.2 }, // C
+      { note: 493.88, duration: 0.2 }, // B
+      { note: 440.00, duration: 0.4 }, // A
+      { note: 440.00, duration: 0.2 }, // A
+      { note: 523.25, duration: 0.2 }, // C
+      { note: 659.25, duration: 0.4 }, // E
+      { note: 587.33, duration: 0.2 }, // D
+      { note: 523.25, duration: 0.2 }, // C
+      { note: 493.88, duration: 0.6 }, // B
+      { note: 523.25, duration: 0.2 }, // C
+      { note: 587.33, duration: 0.4 }, // D
+      { note: 659.25, duration: 0.4 }, // E
+      { note: 523.25, duration: 0.4 }, // C
+      { note: 440.00, duration: 0.4 }, // A
+      { note: 440.00, duration: 0.4 }, // A
+    ];
+
+    let currentTime = ctx.currentTime;
+    const oscillators: OscillatorNode[] = [];
+
+    const playMelody = () => {
+      melody.forEach(({ note, duration }) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = note;
+        osc.connect(gainNode);
+        osc.start(currentTime);
+        osc.stop(currentTime + duration);
+        oscillators.push(osc);
+        currentTime += duration;
+      });
+    };
+
+    // Loop the melody
+    const loopMusic = () => {
+      playMelody();
+      setTimeout(loopMusic, melody.reduce((sum, { duration }) => sum + duration, 0) * 1000);
+    };
+
+    loopMusic();
+    setMusicOscillators(oscillators);
+  }, [audioContext]);
+
+  const stopMusic = useCallback(() => {
+    musicOscillators.forEach(osc => {
+      try {
+        osc.stop();
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    if (audioContext) {
+      audioContext.close();
+    }
+    setAudioContext(null);
+    setMusicGainNode(null);
+    setMusicOscillators([]);
+  }, [audioContext, musicOscillators]);
 
   const startGame = useCallback(() => {
     setGameStarted(true);
     setCurrentPiece(createPiece());
-  }, [createPiece]);
+    startMusic();
+  }, [createPiece, startMusic]);
 
   useEffect(() => {
     if (!currentPiece && !gameOver && gameStarted) {
@@ -213,6 +294,15 @@ export default function TetrisGame() {
 
     return () => clearInterval(interval);
   }, [gameStarted, gameOver]);
+
+  // Update music speed based on level
+  useEffect(() => {
+    if (musicGainNode && audioContext) {
+      // Increase volume and pitch slightly as level increases
+      const volumeMultiplier = 1 + (level - 1) * 0.05;
+      musicGainNode.gain.value = Math.min(0.3, 0.15 * volumeMultiplier);
+    }
+  }, [level, musicGainNode, audioContext]);
 
   useEffect(() => {
     if (gameOver || !gameStarted) return;
@@ -392,6 +482,10 @@ export default function TetrisGame() {
     </div>
   );
 }
+
+
+
+
 
 
 
